@@ -7,10 +7,34 @@ const PIPE_SPEED = 3;
 const PIPE_SPAWN_RATE = 1500;
 const GAP = 170;
 const HITBOX_RADIUS = 24;
-const CAP_HEIGHT = 30; // Height of the pipe's cap in your image (adjust as needed)
+
+// Inject Pixeloid Font
+const pixelFont = `
+@font-face {
+  font-family: 'Pixeloid';
+  src: url('/fonts/PixeloidSans-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: block;
+}
+
+/* GLOBAL PIXEL CRISP RENDERING */
+.pixel-crisp {
+  font-family: 'Pixeloid', monospace;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: grayscale;
+  font-smooth: never;
+  text-rendering: optimizeSpeed;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  letter-spacing: 2px;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+`;
+
 
 const FlappyBird = () => {
-  // --- STATE ---
   const [gameState, setGameState] = useState('START');
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
@@ -21,14 +45,12 @@ const FlappyBird = () => {
   const [countText, setCountText] = useState('GET READY');
   const [revealedContent, setRevealedContent] = useState(null);
 
-  // --- DIMENSIONS & ORIENTATION ---
   const containerRef = useRef(null);
   const [gameWidth, setGameWidth] = useState(400);
   const [gameHeight, setGameHeight] = useState(700);
   const [isLandscape, setIsLandscape] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // --- REFS ---
   const requestRef = useRef(null);
   const birdPosRef = useRef(birdPos);
   const birdVelocityRef = useRef(birdVelocity);
@@ -39,7 +61,6 @@ const FlappyBird = () => {
   const gameWidthRef = useRef(gameWidth);
   const gameHeightRef = useRef(gameHeight);
 
-  // Sync state to refs
   useEffect(() => { birdPosRef.current = birdPos; }, [birdPos]);
   useEffect(() => { birdVelocityRef.current = birdVelocity; }, [birdVelocity]);
   useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
@@ -47,12 +68,11 @@ const FlappyBird = () => {
   useEffect(() => { gameWidthRef.current = gameWidth; }, [gameWidth]);
   useEffect(() => { gameHeightRef.current = gameHeight; }, [gameHeight]);
 
-  // AUDIO
   const jumpSound = useRef(
     typeof Audio !== 'undefined' ? new Audio('/nenjil_cet.mp3') : null
   );
 
-  // --- DIMENSIONS & ORIENTATION LISTENERS ---
+  // --- DIMENSIONS ---
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
@@ -65,7 +85,6 @@ const FlappyBird = () => {
     const orientationMedia = window.matchMedia('(orientation: landscape)');
     const handleOrientationChange = (e) => setIsLandscape(e.matches);
 
-    // Detect mobile (simple UA check)
     const mobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     setIsMobile(mobile);
     setIsLandscape(orientationMedia.matches);
@@ -75,7 +94,6 @@ const FlappyBird = () => {
     const resizeObserver = new ResizeObserver(updateDimensions);
     if (containerRef.current) resizeObserver.observe(containerRef.current);
 
-    // Initial measure
     updateDimensions();
 
     return () => {
@@ -100,19 +118,16 @@ const FlappyBird = () => {
     const currentVel = birdVelocityRef.current;
     const currentPipes = pipesRef.current;
     const height = gameHeightRef.current;
-    const width = gameWidthRef.current;
 
     const newVel = currentVel + GRAVITY;
     const newPos = currentPos + newVel;
 
     let isDead = false;
 
-    // 1. Floor / Ceiling
     if (newPos > height - 60 || newPos < 0) {
       isDead = true;
     }
 
-    // 2. Process Pipes & Score
     const birdLeft = 80;
     let scoreToAdd = 0;
 
@@ -121,20 +136,19 @@ const FlappyBird = () => {
         const newX = pipe.x - PIPE_SPEED;
         let passed = pipe.passed;
 
-        if (!passed && newX + 70 < birdLeft) {
+        if (!passed && newX + 85 < birdLeft) {
           passed = true;
           scoreToAdd += 1;
         }
 
         return { ...pipe, x: newX, passed };
       })
-      .filter((pipe) => pipe.x > -100);
+      .filter((pipe) => pipe.x > -120);
 
-    // 3. Collision
     updatedPipes.forEach((pipe) => {
       const horizontalHit =
         birdLeft + HITBOX_RADIUS > pipe.x &&
-        birdLeft - HITBOX_RADIUS < pipe.x + 70;
+        birdLeft - HITBOX_RADIUS < pipe.x + 85;
 
       if (horizontalHit) {
         const hitTop = newPos - HITBOX_RADIUS < pipe.topHeight;
@@ -231,43 +245,38 @@ const FlappyBird = () => {
     }, 1000);
   };
 
-  // --- REVEAL MENU ---
-  const triggerReveal = (type) => {
-    setRevealedContent(type);
-    setGameState('MENU_REVEAL');
-  };
-
-  const closeReveal = () => {
-    setRevealedContent(null);
-    setGameState('GAMEOVER');
-  };
-
-  // --- ROTATE WARNING (only on mobile landscape) ---
   if (isMobile && isLandscape) {
     return (
-      <div style={rotateOverlayStyle}>
-        <div style={rotateMessageStyle}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>↻</div>
-          <h2>Please rotate your device to portrait mode</h2>
-          <p>This game is designed for vertical play.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // --- MAIN GAME (portrait container) ---
-  return (
-    <div
-      style={{
+      <div style={{
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         width: '100vw',
         height: '100vh',
         backgroundColor: '#1a1a2e',
-        overflow: 'hidden',
-      }}
-    >
+        color: 'white',
+        textAlign: 'center',
+      }}>
+        <div>
+          <h2>Rotate to Portrait Mode</h2>
+         _toggle to play_
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: '#1a1a2e',
+      overflow: 'hidden',
+    }}>
+      <style>{pixelFont}</style>
+
       <div
         ref={containerRef}
         onClick={jump}
@@ -277,41 +286,73 @@ const FlappyBird = () => {
           aspectRatio: '9 / 16',
           backgroundColor: '#70c5ce',
           overflow: 'hidden',
-          fontFamily: 'Arial, sans-serif',
+          fontFamily: 'Pixeloid, Arial, sans-serif',
           userSelect: 'none',
           boxShadow: '0 0 20px rgba(0,0,0,0.5)',
         }}
       >
-        {/* BIRD */}
-        <div
-          style={{
+        {/* PIXEL HUD - TOP LEFT */}
+        {gameState === 'PLAYING' && (
+          <div style={{
             position: 'absolute',
-            left: 80,
-            top: birdPos,
-            width: '80px',
-            height: '80px',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 10,
-          }}
-        >
+            top: 15,
+            left: 15,
+            fontSize: 'clamp(1.6rem, 4vw, 2.4rem)',
+            color: '#ff2a2a',
+            letterSpacing: '2px',
+            textShadow: `
+              2px 2px 0 #1f3cff,
+              4px 4px 0 #000
+            `,
+            zIndex: 50,
+          }}>
+            REFUND: {score}
+          </div>
+        )}
+
+        {/* BOTTOM HASHTAG */}
+        <div style={{
+          position: 'absolute',
+          bottom: 18,
+          width: '100%',
+          textAlign: 'center',
+          fontSize: 'clamp(1.3rem, 3.8vw, 1.9rem)',
+          color: '#ff2a2a',
+          letterSpacing: '2px',
+          textShadow: `
+            2px 2px 0 #1f3cff,
+            4px 4px 0 #000
+          `,
+          zIndex: 40,
+          pointerEvents: 'none',
+        }}>
+          #REFUND-UNION
+        </div>
+
+        {/* BIRD */}
+        <div style={{
+          position: 'absolute',
+          left: 80,
+          top: birdPos,
+          width: '80px',
+          height: '80px',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 10,
+        }}>
           <img
             src="/bird.png"
             alt="Bird"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-            }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
-        {/* PIPES - Single image, no stretching */}
+
+        {/* PIPES */}
         {pipes.map((pipe, i) => {
-          const PIPE_WIDTH = 85;      // match your PNG width
-          const PIPE_HEIGHT = 382;    // IMPORTANT: set this to your actual pipe.png height
+          const PIPE_WIDTH = 85;
+          const PIPE_HEIGHT = 382;
 
           return (
             <React.Fragment key={i}>
-              {/* TOP PIPE (flipped, anchored to gap) */}
               <img
                 src="/pipe.png"
                 alt="Top Pipe"
@@ -323,11 +364,8 @@ const FlappyBird = () => {
                   height: `${PIPE_HEIGHT}px`,
                   transform: 'scaleY(-1)',
                   objectFit: 'contain',
-                  pointerEvents: 'none',
                 }}
               />
-
-              {/* BOTTOM PIPE (normal, anchored to gap) */}
               <img
                 src="/pipe.png"
                 alt="Bottom Pipe"
@@ -338,185 +376,14 @@ const FlappyBird = () => {
                   width: `${PIPE_WIDTH}px`,
                   height: `${PIPE_HEIGHT}px`,
                   objectFit: 'contain',
-                  pointerEvents: 'none',
                 }}
               />
             </React.Fragment>
           );
         })}
-
-        {/* SCORE */}
-        {gameState === 'PLAYING' && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 40,
-              width: '100%',
-              textAlign: 'center',
-              fontSize: 'clamp(3rem, 10vw, 5rem)',
-              color: 'white',
-              fontWeight: 'bold',
-              textShadow: '3px 3px 0 #000',
-              zIndex: 20,
-            }}
-          >
-            {score}
-          </div>
-        )}
-
-        {/* START SCREEN */}
-        {gameState === 'START' && (
-          <div style={overlayStyle}>
-            <img src="/title.png" alt="Title" style={{ width: '90%', maxWidth: '400px' }} />
-            <button onClick={startCountdown} style={buttonStyle('#ff2929')}>
-              ▶ PLAY
-            </button>
-          </div>
-        )}
-
-        {/* COUNTDOWN */}
-        {gameState === 'COUNTDOWN' && (
-          <div style={overlayStyle}>
-            <div style={countStyle}>{count}</div>
-            <div style={countTextStyle}>{countText}</div>
-          </div>
-        )}
-
-        {/* GAME OVER */}
-        {gameState === 'GAMEOVER' && (
-          <div style={overlayStyle}>
-            <div style={cardStyle}>
-              <h2 style={{ margin: 0, color: '#ff1900' }}>GAME OVER</h2>
-              <div style={{ margin: '15px 0' }}>
-                <div>SCORE: {score}</div>
-                <div>BEST: {bestScore}</div>
-              </div>
-
-              <button onClick={startCountdown} style={{ ...buttonStyle('#2ecc71'), width: '100%' }}>
-                ⟳ RETRY
-              </button>
-
-              <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
-                <button onClick={() => triggerReveal('BLAME')} style={{ ...buttonStyle('#e67e22'), flex: 1, minWidth: '120px' }}>
-                  BLAME G SEC
-                </button>
-                <button onClick={() => triggerReveal('LEADERBOARD')} style={{ ...buttonStyle('#3498db'), flex: 1, minWidth: '120px' }}>
-                  RANKINGS
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* REVEAL SCREEN */}
-        {gameState === 'MENU_REVEAL' && (
-          <div style={overlayStyle}>
-            <div style={cardStyle}>
-              {revealedContent === 'BLAME' ? (
-                <img
-                  src="/gsec.png"
-                  alt="G Sec"
-                  style={{
-                    width: '100%',
-                    maxHeight: '60vh',
-                    objectFit: 'contain',
-                    margin: '15px auto',
-                    display: 'block',
-                  }}
-                />
-              ) : (
-                <>
-                  <h2>LEADERBOARD</h2>
-                  <ul style={{ listStyle: 'none', padding: 0 }}>
-                    <li>1. π-Forest - 7,00,000</li>
-                    <li>2. YOU - {score}</li>
-                    <li>3. Nandu - 67</li>
-                  </ul>
-                </>
-              )}
-              <button onClick={closeReveal} style={{ ...buttonStyle('#e74c3c'), width: '100%' }}>
-                CLOSE
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
-};
-
-// --- STYLES ---
-const overlayStyle = {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0,0,0,0.5)',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  alignItems: 'center',
-  gap: '25px',
-  zIndex: 50,
-  padding: '20px',
-  boxSizing: 'border-box',
-};
-
-const countStyle = {
-  fontSize: 'clamp(4rem, 15vw, 8rem)',
-  color: 'white',
-  fontWeight: 'bold',
-  textShadow: '4px 4px 0 #000',
-};
-
-const countTextStyle = {
-  fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
-  color: '#ffbd29',
-  fontWeight: 'bold',
-  textAlign: 'center',
-  textShadow: '2px 2px 0 #000',
-  width: '100%',
-};
-
-const cardStyle = {
-  background: '#ded895',
-  border: '4px solid black',
-  padding: '20px',
-  borderRadius: '12px',
-  textAlign: 'center',
-  width: '100%',
-  maxWidth: '450px',
-  boxSizing: 'border-box',
-};
-
-const buttonStyle = (color) => ({
-  padding: '12px 20px',
-  fontSize: '1.1rem',
-  fontWeight: 'bold',
-  color: 'white',
-  background: color,
-  border: '2px solid white',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  textTransform: 'uppercase',
-  boxSizing: 'border-box',
-});
-
-const rotateOverlayStyle = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  width: '100vw',
-  height: '100vh',
-  backgroundColor: '#1a1a2e',
-  color: 'white',
-  textAlign: 'center',
-};
-
-const rotateMessageStyle = {
-  padding: '2rem',
-  maxWidth: '400px',
 };
 
 export default FlappyBird;
