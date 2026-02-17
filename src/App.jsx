@@ -12,7 +12,7 @@ const HITBOX_RADIUS = 24;
 const pixelFont = `
 @font-face {
   font-family: 'Pixeloid';
-  src: url('/fonts/PixeloidSans-Bold.ttf') format('truetype');
+  src: url('/PixeloidSans-Bold.ttf') format('truetype');
   font-weight: bold;
   font-style: normal;
   font-display: block;
