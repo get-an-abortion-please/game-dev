@@ -18,24 +18,18 @@ const pixelFont = `
   font-display: block;
 }
 
-/* GLOBAL PIXEL CRISP RENDERING */
 .pixel-crisp {
   font-family: 'Pixeloid', monospace;
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
-  font-smooth: never;
   text-rendering: optimizeSpeed;
   image-rendering: pixelated;
-  image-rendering: crisp-edges;
   letter-spacing: 2px;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 `;
 
-
 const FlappyBird = () => {
-  const [gameState, setGameState] = useState('START');
+  const [gameState, setGameState] = useState('START'); // START | COUNTDOWN | PLAYING | GAMEOVER | MENU_REVEAL
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [birdPos, setBirdPos] = useState(300);
@@ -102,12 +96,24 @@ const FlappyBird = () => {
     };
   }, []);
 
+  // --- START BUTTON ---
+  const startGame = () => {
+    startCountdown();
+  };
+
+  // --- TAP HANDLER ---
+  const handleTap = () => {
+    if (gameStateRef.current === 'PLAYING') {
+      jump();
+    }
+  };
+
   // --- END GAME ---
   const endGame = useCallback(() => {
     setGameState('GAMEOVER');
     setBestScore((prev) => Math.max(prev, score));
-    if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
+    cancelAnimationFrame(requestRef.current);
+    clearInterval(spawnIntervalRef.current);
   }, [score]);
 
   // --- GAME LOOP ---
@@ -124,9 +130,7 @@ const FlappyBird = () => {
 
     let isDead = false;
 
-    if (newPos > height - 60 || newPos < 0) {
-      isDead = true;
-    }
+    if (newPos > height - 60 || newPos < 0) isDead = true;
 
     const birdLeft = 80;
     let scoreToAdd = 0;
@@ -138,7 +142,7 @@ const FlappyBird = () => {
 
         if (!passed && newX + 85 < birdLeft) {
           passed = true;
-          scoreToAdd += 1;
+          scoreToAdd += 10000; // +10000 per pipe
         }
 
         return { ...pipe, x: newX, passed };
@@ -195,7 +199,7 @@ const FlappyBird = () => {
     return () => clearInterval(spawnIntervalRef.current);
   }, [gameState]);
 
-  // --- CONTROLS ---
+  // --- JUMP ---
   const jump = useCallback(() => {
     if (gameStateRef.current !== 'PLAYING') return;
     setBirdVelocity(JUMP_STRENGTH);
@@ -206,11 +210,12 @@ const FlappyBird = () => {
     }
   }, []);
 
+  // --- KEYBOARD ---
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === 'Space') {
         e.preventDefault();
-        jump();
+        if (gameStateRef.current === 'PLAYING') jump();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -225,17 +230,17 @@ const FlappyBird = () => {
     setBirdVelocity(0);
     setPipes([]);
     setCount(3);
-    setCountText('YOU STOOD FOR ELECTION');
+    setCountText('PRO-SHOW HAS BEEN CANCELLED');
 
-    if (countdownRef.current) clearInterval(countdownRef.current);
+    clearInterval(countdownRef.current);
 
     let counter = 3;
     countdownRef.current = setInterval(() => {
       counter--;
       setCount(counter);
 
-      if (counter === 2) setCountText('YOU WON THE ELECTION');
-      if (counter === 1) setCountText('LET THE HEIST BEGIN!');
+      if (counter === 2) setCountText('ITS BEEN 3 THREE MONTHS');
+      if (counter === 1) setCountText('LET THE REFUND BEGIN!');
 
       if (counter <= 0) {
         clearInterval(countdownRef.current);
@@ -243,6 +248,49 @@ const FlappyBird = () => {
         setBirdVelocity(JUMP_STRENGTH);
       }
     }, 1000);
+  };
+
+  // --- MENU REVEAL (WITH BLAME GSEC) ---
+  const triggerReveal = (type) => {
+    setRevealedContent(type);
+    setGameState('MENU_REVEAL');
+  };
+
+  const closeReveal = () => {
+    setRevealedContent(null);
+    setGameState('GAMEOVER');
+  };
+
+  const buttonStyle = (color) => ({
+    background: color,
+    border: 'none',
+    padding: '16px',
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: 'white',
+    borderRadius: '10px',
+    cursor: 'pointer',
+  });
+
+  const overlayStyle = {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(0,0,0,0.6)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+    textAlign: 'center',
+    color: 'white',
+  };
+
+  const cardStyle = {
+    background: '#fff',
+    padding: '30px',
+    borderRadius: '16px',
+    width: '85%',
+    maxWidth: '360px',
+    color: '#000',
   };
 
   if (isMobile && isLandscape) {
@@ -257,10 +305,7 @@ const FlappyBird = () => {
         color: 'white',
         textAlign: 'center',
       }}>
-        <div>
-          <h2>Rotate to Portrait Mode</h2>
-         _toggle to play_
-        </div>
+        <h2>Rotate to Portrait Mode to Play</h2>
       </div>
     );
   }
@@ -279,7 +324,7 @@ const FlappyBird = () => {
 
       <div
         ref={containerRef}
-        onClick={jump}
+        onClick={handleTap}
         style={{
           position: 'relative',
           width: 'min(100%, 400px)',
@@ -288,68 +333,173 @@ const FlappyBird = () => {
           overflow: 'hidden',
           fontFamily: 'Pixeloid, Arial, sans-serif',
           userSelect: 'none',
-          boxShadow: '0 0 20px rgba(0,0,0,0.5)',
         }}
       >
-        {/* PIXEL HUD - TOP LEFT */}
+        {/* START SCREEN WITH TITLE IMAGE */}
+        {gameState === 'START' && (
+          <div style={overlayStyle}>
+            <div>
+              <img
+                src="/title.png"
+                alt="Title"
+                style={{
+                  width: '280px',
+                  marginBottom: '30px',
+                  objectFit: 'contain',
+                }}
+              />
+              <button
+                onClick={startGame}
+                style={{ ...buttonStyle('#2ecc71'), width: '220px' }}
+              >
+                ▶ PLAY
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* COUNTDOWN */}
+        {gameState === 'COUNTDOWN' && (
+          <div style={overlayStyle}>
+            <div>
+              <h1 style={{ fontSize: '3rem' }}>{count}</h1>
+              <p>{countText}</p>
+            </div>
+          </div>
+        )}
+
+        {/* GAME OVER WITH BLAME GSEC + LEADERBOARD */}
+        {gameState === 'GAMEOVER' && (
+          <div style={overlayStyle}>
+            <div style={cardStyle}>
+              <h2 style={{ margin: 0, color: '#e74c3c' }}>GAME OVER</h2>
+
+              <div style={{ margin: '15px 0' }}>
+                <div>Refund: {score}</div>
+                <div>Total Refund: {bestScore}</div>
+              </div>
+
+              <button
+                onClick={startGame}
+                style={{ ...buttonStyle('#2ecc71'), width: '100%' }}
+              >
+                ⟳ RETRY
+              </button>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                <button
+                  onClick={() => triggerReveal('BLAME')}
+                  style={{ ...buttonStyle('#e67e22'), flex: 1 }}
+                >
+                  BLAME G SEC
+                </button>
+
+                <button
+                  onClick={() => triggerReveal('LEADERBOARD')}
+                  style={{ ...buttonStyle('#3498db'), flex: 1 }}
+                >
+                  RANKINGS
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CINEMATIC REVEAL */}
+        {gameState === 'MENU_REVEAL' && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 200,
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <div style={{ flex: 1, background: '#2c3e50', animation: 'slideUp 0.5s forwards 0.2s' }} />
+
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <div style={cardStyle}>
+                {revealedContent === 'BLAME' ? (
+                  <img
+                    src="/gsec.png"
+                    alt="G Sec"
+                    style={{
+                      width: 220,
+                      height: 220,
+                      objectFit: 'contain',
+                      margin: '10px auto',
+                      display: 'block',
+                    }}
+                  />
+                ) : (
+                  <>
+                    <h2>LEADERBOARD</h2>
+                    <ul style={{ listStyle: 'none', padding: 0, fontSize: '18px' }}>
+                      <li>1. YOU - {score}</li>
+                      <li>2. ARJUN - 90000</li>
+                      <li>3. MAYA - 70000</li>
+                    </ul>
+                  </>
+                )}
+
+                <button
+                  onClick={closeReveal}
+                  style={{ ...buttonStyle('#e74c3c'), width: '100%', marginTop: '10px' }}
+                >
+                  CLOSE
+                </button>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, background: '#2c3e50', animation: 'slideDown 0.5s forwards 0.2s' }} />
+
+            <style>{`
+              @keyframes slideUp { to { transform: translateY(-100%); } }
+              @keyframes slideDown { to { transform: translateY(100%); } }
+            `}</style>
+          </div>
+        )}
+
+        {/* SCORE HUD */}
         {gameState === 'PLAYING' && (
           <div style={{
             position: 'absolute',
             top: 15,
             left: 15,
-            fontSize: 'clamp(1.6rem, 4vw, 2.4rem)',
+            fontSize: '1.5rem',
             color: '#ff2a2a',
-            letterSpacing: '2px',
-            textShadow: `
-              2px 2px 0 #1f3cff,
-              4px 4px 0 #000
-            `,
             zIndex: 50,
           }}>
             REFUND: {score}
           </div>
         )}
 
-        {/* BOTTOM HASHTAG */}
-        <div style={{
-          position: 'absolute',
-          bottom: 18,
-          width: '100%',
-          textAlign: 'center',
-          fontSize: 'clamp(1.3rem, 3.8vw, 1.9rem)',
-          color: '#ff2a2a',
-          letterSpacing: '2px',
-          textShadow: `
-            2px 2px 0 #1f3cff,
-            4px 4px 0 #000
-          `,
-          zIndex: 40,
-          pointerEvents: 'none',
-        }}>
-          #REFUND-UNION
-        </div>
-
         {/* BIRD */}
         <div style={{
           position: 'absolute',
           left: 80,
           top: birdPos,
-          width: '80px',
-          height: '80px',
+          width: 80,
+          height: 80,
           transform: 'translate(-50%, -50%)',
           zIndex: 10,
         }}>
           <img
             src="/bird.png"
             alt="Bird"
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            style={{ width: '80%', height: '80%', objectFit: 'contain' }}
           />
         </div>
 
         {/* PIPES */}
         {pipes.map((pipe, i) => {
           const PIPE_WIDTH = 85;
-          const PIPE_HEIGHT = 382;
+          const PIPE_HEIGHT = 457;
 
           return (
             <React.Fragment key={i}>
@@ -360,8 +510,8 @@ const FlappyBird = () => {
                   position: 'absolute',
                   left: pipe.x,
                   bottom: gameHeight - pipe.topHeight,
-                  width: `${PIPE_WIDTH}px`,
-                  height: `${PIPE_HEIGHT}px`,
+                  width: PIPE_WIDTH,
+                  height: PIPE_HEIGHT,
                   transform: 'scaleY(-1)',
                   objectFit: 'contain',
                 }}
@@ -373,8 +523,8 @@ const FlappyBird = () => {
                   position: 'absolute',
                   left: pipe.x,
                   top: pipe.topHeight + GAP,
-                  width: `${PIPE_WIDTH}px`,
-                  height: `${PIPE_HEIGHT}px`,
+                  width: PIPE_WIDTH,
+                  height: PIPE_HEIGHT,
                   objectFit: 'contain',
                 }}
               />
