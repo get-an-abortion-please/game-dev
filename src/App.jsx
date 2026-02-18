@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // --- CONFIGURATION ---
-const GRAVITY = 0.6;
-const JUMP_STRENGTH = -8;
+const GRAVITY = 0.4;
+const JUMP_STRENGTH = -7;
 const PIPE_SPEED = 3;
 const PIPE_SPAWN_RATE = 1500;
 const GAP = 170;
