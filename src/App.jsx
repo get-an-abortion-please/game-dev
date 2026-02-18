@@ -6,7 +6,7 @@ const JUMP_STRENGTH = -7;
 const PIPE_SPEED = 3;
 const PIPE_SPAWN_RATE = 1500;
 const GAP = 170;
-const HITBOX_RADIUS = 17;
+const HITBOX_RADIUS = 14;
 
 // Inject Pixeloid Font
 const pixelFont = `
@@ -499,7 +499,7 @@ const FlappyBird = () => {
         {/* PIPES */}
         {pipes.map((pipe, i) => {
           const PIPE_WIDTH = 85;
-          const PIPE_HEIGHT = 457;
+          const PIPE_HEIGHT = 385;
 
           return (
             <React.Fragment key={i}>
