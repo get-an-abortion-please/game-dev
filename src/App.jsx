@@ -6,7 +6,7 @@ const JUMP_STRENGTH = -7;
 const PIPE_SPEED = 3;
 const PIPE_SPAWN_RATE = 1500;
 const GAP = 170;
-const HITBOX_RADIUS = 24;
+const HITBOX_RADIUS = 20;
 
 // Inject Pixeloid Font
 const pixelFont = `
@@ -441,8 +441,8 @@ const FlappyBird = () => {
                     <h2>LEADERBOARD</h2>
                     <ul style={{ listStyle: 'none', padding: 0, fontSize: '18px' }}>
                       <li>1. YOU - {score}</li>
-                      <li>2. ARJUN - 90000</li>
-                      <li>3. MAYA - 70000</li>
+                      <li>2. Nandu - 67</li>
+                      <li>3. Kanika - 60</li>
                     </ul>
                   </>
                 )}
@@ -484,15 +484,15 @@ const FlappyBird = () => {
           position: 'absolute',
           left: 80,
           top: birdPos,
-          width: 80,
-          height: 80,
+          width: 60,
+          height: 60,
           transform: 'translate(-50%, -50%)',
           zIndex: 10,
         }}>
           <img
             src="/bird.png"
             alt="Bird"
-            style={{ width: '80%', height: '80%', objectFit: 'contain' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </div>
 
