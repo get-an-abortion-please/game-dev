@@ -6,7 +6,7 @@ const JUMP_STRENGTH = -7;
 const PIPE_SPEED = 3;
 const PIPE_SPAWN_RATE = 1500;
 const GAP = 170;
-const HITBOX_RADIUS = 20;
+const HITBOX_RADIUS = 17;
 
 // Inject Pixeloid Font
 const pixelFont = `
